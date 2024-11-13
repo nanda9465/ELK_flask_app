@@ -68,3 +68,11 @@ for i in range(10):
     axes[i].axis('off')
 plt.show()
 
+
+GCP Service	Use Case	GPU Support
+Vertex AI	Managed training & serving	GPUs for both training & prediction
+AI Platform	Training and prediction	GPUs for both training & prediction
+Compute Engine	Custom ML training & inference	Full control over GPU setup
+Kubernetes Engine	Distributed ML workloads	Multi-GPU distributed training
+AutoML & Pre-Trained APIs	Image, NLP tasks	High-performance APIs on GPUs
+
