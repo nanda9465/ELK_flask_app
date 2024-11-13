@@ -1,40 +1,3 @@
- Sample Project
-
-Setup Elastic Search,  Kibana, Flask APP
---------------------------------------------------------
-
-step 1:  docker-compose.yml file
-step 2:  Run the above file to steup the containers
-         docker-compose up -d   
-
-
-Stop the containers
-
-docker-compose down
-
-
-kibana UI URL : http://localhost:5601/app
-
-Elastic Search URl : http://localhost:9200
-
-Run the application Container
------------------------------------------------------------
-
-Local Run
------------------------------------
-
-pip install -r requirements.txt
-
-docker build -t elk_proj_flaskapp:latest .
-
-
-
-Swagger Json
------------------------------------------------------------
-
-http://192.168.0.100:9097/swagger.json
-
-=====================================================================
 import torch
 import cv2
 import numpy as np
@@ -57,9 +20,13 @@ transform = transforms.Compose([
 def change_background(image_path, background_color=(255, 255, 255)):
     # Load the image
     input_image = cv2.imread(image_path)
+    if input_image is None:
+        raise FileNotFoundError(f"Image not found at path: {image_path}")
+    
     input_image_rgb = cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
 
     # Transform the image for the model
+    original_shape = input_image_rgb.shape[:2]
     image_tensor = transform(input_image_rgb).unsqueeze(0).to(device)
 
     # Perform segmentation
@@ -69,23 +36,34 @@ def change_background(image_path, background_color=(255, 255, 255)):
     # Get the predicted segmentation mask
     output_predictions = output.argmax(0).cpu().numpy()
 
-    # Create a mask for the foreground
+    # Create a mask for the foreground (person class)
     mask = (output_predictions == 15)  # 15 is the label for 'person' in COCO dataset
     mask = np.stack([mask] * 3, axis=-1)  # Convert to 3 channels
 
+    # Resize the mask to match the original image shape
+    mask = cv2.resize(mask.astype(np.uint8), (original_shape[1], original_shape[0]), interpolation=cv2.INTER_NEAREST)
+
     # Create the new background
     background = np.full_like(input_image_rgb, background_color)
-    
+
+    # Ensure shapes match
+    if background.shape != input_image_rgb.shape:
+        background = cv2.resize(background, (input_image_rgb.shape[1], input_image_rgb.shape[0]))
+
     # Change the background
     combined = np.where(mask, input_image_rgb, background)
 
     return combined
 
 # Change the background of an input image
-output_image = change_background('path/to/your/image.jpg', background_color=(255, 255, 255))
+if __name__ == "__main__":
+    try:
+        output_image = change_background('path/to/your/image.jpg', background_color=(255, 255, 255))
 
-# Display the output
-plt.imshow(output_image)
-plt.axis('off')
-plt.title('Background Changed')
-plt.show()
+        # Display the output
+        plt.imshow(output_image)
+        plt.axis('off')
+        plt.title('Background Changed')
+        plt.show()
+    except Exception as e:
+        print(f"An error occurred: {e}")
